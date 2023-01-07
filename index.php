@@ -1,22 +1,42 @@
-<?php 
-    include_once 'config/Database.php';
+<?php
+
+declare(strict_types=1);
+
+use HttpClient\HttpClient;
+use HttpClient\HttpClientInterface;
+
+include_once 'config/Database.php';
+include_once 'HttpClient.php';
+
+$httpClient = new HttpClient();
+
+
+try {
     $database = new Database();
-    $db = $database->getConnection();
-    require "api.php";
+    $databaseConnection = $database->getConnection();
+} catch (PDOException $e) {
+    die("Error connecting to database: " . $e->getMessage());
+}
 
-    if(isset($_POST['delete'])){
+if (isset($_POST['delete'])) {
+    $ids = $_POST['delete'];
+    foreach ($ids as $key => $value) {
+        $postData = [
+            "id" => $value,
+        ];
 
-        $id = $_POST['delete'];
-        foreach ($id as $key => $value) {
-           $postData = array (
-            "id"=> $value
-           );
-
-           $response = requestApi(
-            'POST', 'http://localhost/tak-product-module/controller/delete.php', 
-            json_encode($postData)); 
+        try {
+            $response = $httpClient->requestApi(
+                'POST',
+                'http://localhost/tak-product-module/controllers/DeleteController.php',
+                json_encode($postData)
+            );
+        } catch (Exception $e) {
+            die("Error sending delete request: " . $e->getMessage());
         }
     }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -68,7 +88,11 @@
             <!-- Product Section Start -->
                     <div class="row">
                         <?php
-                            $response = requestApi('GET', 'http://localhost/tak-product-module/controller/read.php', false);
+                            try {
+                                $response = $httpClient->requestApi('GET', 'http://localhost/tak-product-module/controllers/ReadController.php', false);
+                            } catch (Exception $e) {
+                                die("Error sending read request: " . $e->getMessage());
+                            }
 
                             $decodedText = html_entity_decode($response);
                             $json = json_decode($response, true);

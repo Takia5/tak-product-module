@@ -1,32 +1,61 @@
 <?php
-  include_once 'config/Database.php';
-  $database = new Database();
-  $db = $database->getConnection();
-  require "api.php";
+declare(strict_types=1);
 
-  if(isset($_POST['sku'], $_POST['productName'],
+use HttpClient\HttpClient;
+use HttpClient\HttpClientInterface;
+
+include_once 'config/Database.php';
+$database = new Database();
+$db = $database->getConnection();
+
+require "HttpClient.php";
+
+$httpClient = new HttpClient();
+
+if (isset($_POST['sku'], $_POST['productName'],
     $_POST['price'], $_POST['productSize'], 
-    $_POST['type'])){
+    $_POST['type'])) {
+    $sku = $_POST['sku'];
+    $productName = $_POST['productName'];
+    $price = $_POST['price'];
+    $productSize = $_POST['productSize'];       
+    $type = $_POST['type'];
 
-        $sku = $_POST['sku'];
-        $productName = $_POST['productName'];
-        $price = $_POST['price'];
-        $productSize = $_POST['productSize'];       
-        $type = $_POST['type'];
-
-    $postData = array (
-        "sku"=> $sku,
-        "productName"=>$productName,
-        "price"=>$price,
-        "productSize" => $productSize,
-        "type" => $type
+    # Check if Product SKU exists
+    $response = $httpClient->requestApi(
+        'GET', 
+        'http://localhost/tak-product-module/controllers/ReadController.php',
+        false
     );
 
-    $response = requestApi(
-      'POST', 'http://localhost/tak-product-module/controller/create.php', 
-      json_encode($postData));
-      header('Location: index.php');
-  }
+    $decodedText = html_entity_decode($response);
+    $json = json_decode($response, true);                          
+        
+    if (!empty($json['data'])) {
+        $skuList = array_column($json['data'], 'sku');
+        if (in_array($sku, $skuList)){
+            echo '<script language="javascript" type="text/javascript"> 
+                    alert("Product SKU Exists!");
+                    window.location = "index.php";
+                  </script>';
+          } else {
+            $postData = array (
+              "sku"=> $sku,
+              "productName"=>$productName,
+              "price"=>$price,
+              "productSize" => $productSize,
+              "type" => $type
+            );
+
+            $response = $httpClient->requestApi(
+              'POST', 'http://localhost/tak-product-module/controllers/CreateController.php', 
+              json_encode($postData));
+              header('Location: index.php');
+          }
+        }
+
+}
+    
 ?>
 
 <!DOCTYPE html>
@@ -107,7 +136,8 @@
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Type Switcher</label>
               <div class="col-sm-6">
-                <select id="productType" name="type" class="form-control selectpicker" >
+                <select id="productType" name="type" class="form-control selectpicker" oninvalid="this.setCustomValidity('Please, submit required data!')"
+            oninput="this.setCustomValidity('')" required>
                   <option value="">Select Product type</option>
                   <option value="Book">Book</option>
                   <option value="Furniture">Furniture</option>

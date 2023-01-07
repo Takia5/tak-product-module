@@ -1,5 +1,8 @@
 <?php
-class Product{ 
+
+require_once 'ProductInterface.php';
+
+class Product implements ProductInterface{ 
     
     private $conn;
     private $productTable = "products";  
@@ -13,7 +16,7 @@ class Product{
         $this->conn = $db;
     } 
 	
-	function read(){	
+	public function read(){	
 		$stmt = $this->conn->prepare(
 			"SELECT * FROM ".$this->productTable." ORDER BY productID DESC");
 		$stmt->execute();			
@@ -22,7 +25,7 @@ class Product{
 
 	}
 	
-	function create(){
+	public function create(){
 		
 		$stmt = $this->conn->prepare("
 			INSERT INTO ".$this->productTable."
@@ -45,7 +48,7 @@ class Product{
 	}
 		
 	
-	function delete(){
+	public function delete(){
 		
 		$stmt = $this->conn->prepare("
 			DELETE FROM ".$this->productTable." 
